@@ -27,7 +27,7 @@ define-command hop %{
 
 
     execute-keys <c-s>
-    execute-keys -draft 'gtGbGls\w{2,}<ret>:reg b %val{selections_desc}<ret>'
+    execute-keys 'gtGbGls\w{2,}<ret>:reg b %val{selections_desc}<ret>'
     # -draft prevents unnecessary jump markers, but doesn't work with offscreen main cursor
     #
 
