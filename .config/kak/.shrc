@@ -1,0 +1,79 @@
+PS1=''
+PS2=''
+PS3=''
+PS4=''
+
+export EDITOR=kakedit
+export VISUAL=kakedit
+
+alias la='ls -A'
+alias ll='ls -lh'
+alias xrm='doas xbps-remove'
+alias xs='xbps-query'
+alias xss='xbps-query -s'
+alias xf='xbps-query -f'
+alias xrf='xbps-query -Rf'
+alias grc='gh repo clone'
+alias chx='chmod +x'
+alias d='doas'
+alias usv='env SVDIR=$HOME/.service sv'
+alias sv='doas sv'
+alias dotfiles='/bin/git --git-dir=$HOME/devel/wip/dotfiles/ --work-tree=$HOME'
+alias winewl='env -u DISPLAY ~/.local/wine/bin/wine'
+alias bat='cat /sys/class/power_supply/BAT0/capacity'
+alias fc=footclient
+alias idf=~/devel/sdk/esp-idf-v6.0.1/tools/idf.py
+alias idfexp='IDF_PATH=~/devel/sdk/esp-idf-v6.0.1 IDF_PATH_FORCE=1 . ~/devel/sdk/esp-idf-v6.0.1/export.sh'
+alias zigesp='~/.zig/zig-relsafe-x86_64-linux-musl-baseline/zig'
+alias za='zoxide add >/dev/null 2>&1'
+
+# sudo() {
+#     if ! /bin/sudo -n true > /dev/null 2>&1; then
+#         printf '%s\n' "eval -client $kak_client sudo-password" | kak -p $kak_session
+#         /bin/sudo -S -v >/dev/null 2>&1
+#     fi
+
+#     /bin/sudo -n -- $@
+# }
+
+t() {
+	if cd "$1"; then
+        bufname=$$
+        {
+        	kak_cmd_buf $bufname "sh-cd '$PWD' '${PWD##*/} '"
+        	kak_cmd_client modeline
+        } | kak_cmd
+		zoxide add "$PWD" >/dev/null 2>&1
+		return 0
+	else
+		return 1
+	fi
+}
+
+
+md() {
+	mkdir -p "$@" && t "$@"
+}
+
+kak_cmd() {
+    kak -p $kak_session
+}
+
+kak_cmd_client() {
+    printf %s\\n "eval -client $kak_client %{$*}"
+}
+
+kak_cmd_buf() {
+    buf=$1
+    shift
+    printf %s\\n "eval -buffer $buf %{$*}"
+}
+
+watch() {
+    cmd=$1
+    shift
+    inotifywait -m -e close_write --format '%w%f' $@ | while read -r file; do
+        eval "$cmd"
+    done
+}
+

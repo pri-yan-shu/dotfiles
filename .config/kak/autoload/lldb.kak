@@ -1,1 +1,1 @@
-/home/piri/devel/wip/kak-lldb/lldb.kak
+/home/piri/devel/wip/lldb.kak/lldb.kak

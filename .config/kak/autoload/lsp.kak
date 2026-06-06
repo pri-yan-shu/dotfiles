@@ -1,0 +1,1 @@
+/usr/share/examples/kak-lsp/lsp.kak

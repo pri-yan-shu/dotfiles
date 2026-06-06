@@ -1,4 +1,6 @@
-plugin load ~/devel/wip/kak-lldb/kak-lldb.so
+plugin load ~/.config/kak/lldb.kak.so
+command script import ~/.local/share/lldb/qt/debugger/lldbbridge.py
+# command script import ~/.local/share/lldb/kdevelop/all.py
 
 settings set -f prompt-ansi-prefix ""
 settings set -f prompt-ansi-suffix ""
@@ -11,4 +13,9 @@ settings set symbols.enable-lldb-index-cache true
 settings set interpreter.echo-commands false
 settings set target.skip-prologue true
 settings set target.process.optimization-warnings true
-# settings set target.import-std-module true
+# settings set target.prefer-dynamic-value run-target
+# settings set target.enable-synthetic-value true
+settings append target.process.thread.step-avoid-libraries libstdc++.so
+settings append target.process.thread.step-avoid-libraries libQt6Core.so
+settings append target.process.thread.step-avoid-libraries libQt6Gui.so
+settings append target.process.thread.step-avoid-libraries libQt6Widgets.so

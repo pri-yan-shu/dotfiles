@@ -1,17 +1,15 @@
-define-command x %{ evaluate-commands "wq" }
-
 define-command z -params 1 %{ cd %arg{1} }
 complete-command z -menu shell-script-candidates %{ zoxide query -l } 
 
 define-command f -params 1.. %{ edit %arg{@} }
-complete-command f -menu shell-script-candidates %{ find . -type f -not -path '*/.*' -printf '%P\n' }
+complete-command f -menu shell-script-candidates %{ rg --files }
 
 define-command F -params 1.. %{ evaluate-commands %sh{
     for file in "$@"; do
         echo "edit $file"
     done
 }}
-complete-command F -menu shell-script-candidates %{ find . -type f -printf '%P\n' -path '*/.*' }
+complete-command F -menu shell-script-candidates %{ rg --files }
 
 define-command E -params 1.. %{ evaluate-commands %sh{
     for file in "$@"; do
@@ -20,22 +18,16 @@ define-command E -params 1.. %{ evaluate-commands %sh{
 }}
 complete-command E -menu file
 
-define-command D -params 1.. %{ evaluate-commands %sh{
+define-command d -params 1.. %{ evaluate-commands %sh{
     for dir in "$@"; do
         find $dir -type f -maxdepth 1 -exec echo edit {} \; | sort
     done
 }}
-# complete-command D file
-complete-command D -menu file
+complete-command d -menu file
 
-define-command firefox-tab %{
+define-command html-open %{
 	exec "<a-a><a-w>s\b\w+:/(/[^\s(){}\[\]]+)\b<ret>"
-	evaluate-commands %sh{ firefox --new-tab=$kak_selection }
-}
-
-define-command firefox-window %{
-	exec "<a-a><a-w>s\b\w+:/(/[^\s(){}\[\]]+)\b<ret>"
-	evaluate-commands %sh{ firefox --new-tab=$kak_selection }
+	evaluate-commands %sh{ xdg-open $kak_selection }
 }
 
 define-command delete-buffers-matching -params 1 %{
@@ -76,23 +68,36 @@ define-command clang-format-cursor %{
     exec -draft <percent>| "clang-format --lines=%val{cursor_line}:%val{cursor_line}" <ret>
 }
 
-define-command -params 1 rg %{ evaluate-commands %sh{
-    file=${1%%:*}
-    rest=${1#$file:}
-    line=${rest%%:*}
-    rest=${rest#$line:}
-    col=${rest%%:*}
+# define-command -params 1 rg %{ evaluate-commands %sh{
+#     file=${1%%:*}
+#     rest=${1#$file:}
+#     line=${rest%%:*}
+#     rest=${rest#$line:}
+#     col=${rest%%:*}
 
-    echo "edit $file $line $col"
-}}
+#     echo "edit $file $line $col"
+# }}
 
-complete-command -menu rg shell-script-candidates %{ trap - INT QUIT; ${kak_opt_grepcmd} -F "${kak_reg_r}" 2>&1 | tr -d '\r' | tr '\t' '  '; }
+define-command -params 1 r %{
+    set-register slash %arg{1}
+    rg slash
+}
 
-define-command -params 1.. mulsel %{
-    try %{
-        execute-keys -draft "s.{2,}<ret>:%arg{@} %reg{.}<ret>"
-    } catch %{
-        execute-keys -draft "x:%arg{@} %%reg{.}<ret>"
+define-command -params 1 rg %{
+    prompt -menu -shell-script-candidates %exp{
+        trap - INT QUIT; ${kak_opt_grepcmd} -F -- "$kak_reg_%arg{1}" 2>&1 | tr -d '\r' | tr '\t' '  '; 
+    } rg: %{
+        edit -scratch *rg*
+        set-register dquote %val{text}
+        execute-keys 'Ps([^:\s]+):(\d+)(?::(\d+))?<ret>'
+        edit %reg{1} %reg{2} %reg{3}
+        delete-buffer *rg*
+    }
+}
+
+define-command -override xifone %{
+    evaluate-commands -itersel %{
+        try %{ execute-keys s\A.\z<ret>x }
     }
 }
 
@@ -124,12 +129,18 @@ define-command -params 1 mark-location %{
 }
 
 define-command lsp-enable-wrapper %{
+    set-option global lsp_file_watch_support true
     lsp-enable
     lsp-inlay-diagnostics-enable global
     lsp-inlay-hints-enable global
     lsp-diagnostic-lines-disable global
-    lsp-auto-signature-help-disable
     lsp-semantic-tokens
+}
+
+define-command lsp-disable-wrapper %{
+    lsp-disable
+    try %{ rmhl global/lsp_inlay_diagnostics }
+    try %{ rmhl global/lsp_inlay_hints }
 }
 
 define-command -params 1.. grep-smart %{
@@ -158,11 +169,12 @@ define-command toggle-warp %{
         add-highlighter buffer/wrap wrap -word
     }
 }
-define-command -params 1 toggle-warp-width %{
+
+define-command toggle-num-lines %{
     try %{
-        remove-highlighter buffer/wrap
+        remove-highlighter global/number-lines
     } catch %{
-        add-highlighter buffer/wrap wrap -word -width %arg{1}
+        add-highlighter global/number-lines number-lines -separator '  ' -min-digits 3
     }
 }
 
@@ -204,4 +216,21 @@ define-command colorschemes %{
     edit -scratch *colorschemes*
     execute-keys '!find -L "${kak_runtime}/colors" "${kak_config}/colors" -type f -name ''*\.kak''<ret>'
     map buffer normal <ret> 'x_:source %reg{.}<ret>j'
+}
+
+declare-option int increment
+
+define-command -params 1 increment-sel %{
+    evaluate-commands -itersel -save-regs '"' %{
+        set-option current increment %val{selection}
+        set-option -add current increment %arg{1}
+        set-register dquote %opt{increment}
+        execute-keys R
+    }
+}
+
+define-command -params 1 passwd %{
+    prompt -password password: %{
+        echo -to-file %arg{1} %val{text}
+    }
 }
